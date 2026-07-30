@@ -1,35 +1,26 @@
 import express from 'express';
 import swaggerUi from 'swagger-ui-express';
-import swaggerJsdoc from 'swagger-jsdoc';
+import swaggerSpec from './swagger.js';
 
 const app = express();
 const PORT = 3000;
 
+// Parse incoming JSON request bodies so req.body works in POST/PUT routes
 app.use(express.json());
 
-const swaggerOptions = {
-   definition: {
-      openapi: '3.0.0',
-      info: {
-         title: 'Task CRUD API',
-         version: '1.0.0',
-         description: 'A simple CRUD API for managing tasks',
-      },
-   },
-   apis: ['./index.js'],
-};
-
-const swaggerSpec = swaggerJsdoc(swaggerOptions);
+// Serves the interactive Swagger docs at /api-docs
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
+// In-memory task storage — resets every time the server restarts
 let tasks = [
-   { id: 1, title: 'Learn Express basics', done: false },
-   { id: 2, title: 'Build CRUD API', done: false },
-   { id: 3, title: 'Push to GitHub', done: false },
+  { id: 1, title: 'Learn Express basics', done: false },
+  { id: 2, title: 'Build CRUD API', done: false },
+  { id: 3, title: 'Push to GitHub', done: false },
 ];
 
+// Simple landing route, just confirms the server is up
 app.get('/', (req, res) => {
-   res.send('Server is running!');
+  res.send('Server is running!');
 });
 
 /**
@@ -41,8 +32,9 @@ app.get('/', (req, res) => {
  *       200:
  *         description: Server is healthy
  */
+// Health check — used to confirm the API is reachable and responding
 app.get('/health', (req, res) => {
-   res.json({ status: 'ok' });
+  res.json({ status: 'ok' });
 });
 
 /**
@@ -70,25 +62,28 @@ app.get('/health', (req, res) => {
  *       400:
  *         description: Title is required
  */
+// Returns every task currently in memory
 app.get('/tasks', (req, res) => {
-   res.json(tasks);
+  res.json(tasks);
 });
 
+// Creates a new task; requires a non-empty title, ID is derived from the highest existing ID
 app.post('/tasks', (req, res) => {
-   const { title } = req.body;
+  const { title } = req.body;
 
-   if (!title) {
-      return res.status(400).json({ error: 'Title is required' });
-   }
+  if (!title) {
+    return res.status(400).json({ error: 'Title is required' });
+  }
 
-   const newTask = {
-      id: tasks.length + 1,
-      title,
-      done: false,
-   };
+  const nextId = Math.max(...tasks.map((t) => t.id), 0) + 1;
+  const newTask = {
+    id: nextId,
+    title,
+    done: false,
+  };
 
-   tasks.push(newTask);
-   res.status(201).json(newTask);
+  tasks.push(newTask);
+  res.status(201).json(newTask);
 });
 
 /**
@@ -144,45 +139,48 @@ app.post('/tasks', (req, res) => {
  *       404:
  *         description: Task not found
  */
+// Returns a single task by ID, or 404 if it doesn't exist
 app.get('/tasks/:id', (req, res) => {
-   const id = Number(req.params.id);
-   const task = tasks.find((t) => t.id === id);
+  const id = Number(req.params.id);
+  const task = tasks.find((t) => t.id === id);
 
-   if (!task) {
-      return res.status(404).json({ error: 'Task not found' });
-   }
+  if (!task) {
+    return res.status(404).json({ error: 'Task not found' });
+  }
 
-   res.json(task);
+  res.json(task);
 });
 
+// Updates a task's title and/or done status; only provided fields are changed
 app.put('/tasks/:id', (req, res) => {
-   const id = Number(req.params.id);
-   const task = tasks.find((t) => t.id === id);
+  const id = Number(req.params.id);
+  const task = tasks.find((t) => t.id === id);
 
-   if (!task) {
-      return res.status(404).json({ error: 'Task not found' });
-   }
+  if (!task) {
+    return res.status(404).json({ error: 'Task not found' });
+  }
 
-   const { title, done } = req.body;
+  const { title, done } = req.body;
 
-   if (title !== undefined) task.title = title;
-   if (done !== undefined) task.done = done;
+  if (title !== undefined) task.title = title;
+  if (done !== undefined) task.done = done;
 
-   res.json(task);
+  res.json(task);
 });
 
+// Deletes a task by ID; returns 204 with no body on success
 app.delete('/tasks/:id', (req, res) => {
-   const id = Number(req.params.id);
-   const index = tasks.findIndex((t) => t.id === id);
+  const id = Number(req.params.id);
+  const index = tasks.findIndex((t) => t.id === id);
 
-   if (index === -1) {
-      return res.status(404).json({ error: 'Task not found' });
-   }
+  if (index === -1) {
+    return res.status(404).json({ error: 'Task not found' });
+  }
 
-   tasks.splice(index, 1);
-   res.status(204).send();
+  tasks.splice(index, 1);
+  res.status(204).send();
 });
 
 app.listen(PORT, () => {
-   console.log(`Server listening on http://localhost:${PORT}`);
+  console.log(`Server listening on http://localhost:${PORT}`);
 });
