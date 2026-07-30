@@ -21,7 +21,7 @@ More folders will be added as the program progresses through Week 8.
 
 ## About Me
 
-I'm Haroon Ameer Khan, a recent Computer Science graduate working as a Backend AI Engineer intern at FlyRank. I'm a full-stack/MERN developer focused on integrating AI/LLMs into backend systems. You can see more of my work at [realmrhak.dev](https://realmrhak.dev).
+I'm Haroon Ameer Khan, a recent Computer Science graduate working as a Backend AI Engineer intern at FlyRank. I'm a full-stack/MERN developer focused on integrating AI/LLMs into backend systems. You can see more of my work at [realmrhak.dev](https://haroon-ameer-khan-portfolio.vercel.app/).
 
 ## Notes
 
