@@ -1,6 +1,7 @@
 import express from 'express';
 import swaggerUi from 'swagger-ui-express';
 import swaggerSpec from './swagger.js';
+import db from './db.js';
 
 const app = express();
 const PORT = 3000;
@@ -11,12 +12,6 @@ app.use(express.json());
 // Serves the interactive Swagger docs at /api-docs
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-// In-memory task storage — resets every time the server restarts
-let tasks = [
-  { id: 1, title: 'Learn Express basics', done: false },
-  { id: 2, title: 'Build CRUD API', done: false },
-  { id: 3, title: 'Push to GitHub', done: false },
-];
 
 // Simple landing route, just confirms the server is up
 app.get('/', (req, res) => {
@@ -62,8 +57,9 @@ app.get('/health', (req, res) => {
  *       400:
  *         description: Title is required
  */
-// Returns every task currently in memory
+// Returns every task from the database
 app.get('/tasks', (req, res) => {
+  const tasks = db.prepare('SELECT * FROM tasks').all();
   res.json(tasks);
 });
 
@@ -142,7 +138,7 @@ app.post('/tasks', (req, res) => {
 // Returns a single task by ID, or 404 if it doesn't exist
 app.get('/tasks/:id', (req, res) => {
   const id = Number(req.params.id);
-  const task = tasks.find((t) => t.id === id);
+  const task = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
 
   if (!task) {
     return res.status(404).json({ error: 'Task not found' });
