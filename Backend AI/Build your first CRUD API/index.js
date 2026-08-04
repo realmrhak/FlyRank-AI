@@ -148,33 +148,35 @@ app.get('/tasks/:id', (req, res) => {
   res.json(task);
 });
 
-// Updates a task's title and/or done status; only provided fields are changed
+// Updates a task's title and/or done status in the database
 app.put('/tasks/:id', (req, res) => {
   const id = Number(req.params.id);
-  const task = tasks.find((t) => t.id === id);
+  const existing = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
 
-  if (!task) {
+  if (!existing) {
     return res.status(404).json({ error: 'Task not found' });
   }
 
   const { title, done } = req.body;
+  const newTitle = title !== undefined ? title : existing.title;
+  const newDone = done !== undefined ? (done ? 1 : 0) : existing.done;
 
-  if (title !== undefined) task.title = title;
-  if (done !== undefined) task.done = done;
+  db.prepare('UPDATE tasks SET title = ?, done = ? WHERE id = ?').run(newTitle, newDone, id);
 
-  res.json(task);
+  const updatedTask = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
+  res.json(updatedTask);
 });
 
-// Deletes a task by ID; returns 204 with no body on success
+// Deletes a task from the database by ID
 app.delete('/tasks/:id', (req, res) => {
   const id = Number(req.params.id);
-  const index = tasks.findIndex((t) => t.id === id);
+  const existing = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
 
-  if (index === -1) {
+  if (!existing) {
     return res.status(404).json({ error: 'Task not found' });
   }
 
-  tasks.splice(index, 1);
+  db.prepare('DELETE FROM tasks WHERE id = ?').run(id);
   res.status(204).send();
 });
 
