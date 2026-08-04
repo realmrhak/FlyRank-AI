@@ -63,7 +63,7 @@ app.get('/tasks', (req, res) => {
   res.json(tasks);
 });
 
-// Creates a new task; requires a non-empty title, ID is derived from the highest existing ID
+// Creates a new task in the database; requires a non-empty title
 app.post('/tasks', (req, res) => {
   const { title } = req.body;
 
@@ -71,14 +71,15 @@ app.post('/tasks', (req, res) => {
     return res.status(400).json({ error: 'Title is required' });
   }
 
-  const nextId = Math.max(...tasks.map((t) => t.id), 0) + 1;
+  const insert = db.prepare('INSERT INTO tasks (title, done) VALUES (?, ?)');
+  const result = insert.run(title, 0);
+
   const newTask = {
-    id: nextId,
+    id: result.lastInsertRowid,
     title,
-    done: false,
+    done: 0,
   };
 
-  tasks.push(newTask);
   res.status(201).json(newTask);
 });
 
