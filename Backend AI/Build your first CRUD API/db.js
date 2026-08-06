@@ -1,25 +1,28 @@
-import Database from 'better-sqlite3';
+import pg from 'pg';
 
-// Opens (or creates) the tasks.db file — this is our entire database
-const db = new Database('tasks.db');
+const { Pool } = pg;
+
+// Connects using DATABASE_URL from .env
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
 
 // Create the tasks table if it doesn't already exist
-db.exec(`
+await pool.query(`
   CREATE TABLE IF NOT EXISTS tasks (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     title TEXT NOT NULL,
-    done INTEGER NOT NULL DEFAULT 0
+    done BOOLEAN NOT NULL DEFAULT false
   )
 `);
 
 // Seed 3 example tasks, but only if the table is currently empty
-const row = db.prepare('SELECT COUNT(*) AS count FROM tasks').get();
+const { rows } = await pool.query('SELECT COUNT(*) FROM tasks');
 
-if (row.count === 0) {
-   const insert = db.prepare('INSERT INTO tasks (title, done) VALUES (?, ?)');
-   insert.run('Learn Express basics', 0);
-   insert.run('Build CRUD API', 0);
-   insert.run('Push to GitHub', 0);
+if (Number(rows[0].count) === 0) {
+  await pool.query('INSERT INTO tasks (title, done) VALUES ($1, $2)', ['Learn Express basics', false]);
+  await pool.query('INSERT INTO tasks (title, done) VALUES ($1, $2)', ['Build CRUD API', false]);
+  await pool.query('INSERT INTO tasks (title, done) VALUES ($1, $2)', ['Push to GitHub', false]);
 }
 
-export default db;
+export default pool;
