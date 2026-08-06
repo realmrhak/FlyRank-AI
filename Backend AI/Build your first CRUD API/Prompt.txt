@@ -1,0 +1,28 @@
+I have an existing In-Memory CRUD API built with Node.js and Express. I want to migrate it to SQLite using the better-sqlite3 library without changing the API behavior.
+
+Requirements:
+
+- Use Express + better-sqlite3.
+- Replace the in-memory array with a SQLite database.
+- Create a `tasks` table only if it does not already exist.
+- Table schema:
+  - id INTEGER PRIMARY KEY AUTOINCREMENT
+  - title TEXT NOT NULL
+  - done INTEGER NOT NULL DEFAULT 0 (0 = false, 1 = true)
+- Seed sample tasks only when the table is empty. Do not insert duplicate seed data on every server restart.
+- Keep the same 5 CRUD endpoints and their behavior:
+  - GET /tasks
+  - GET /tasks/:id
+  - POST /tasks
+  - PUT /tasks/:id
+  - DELETE /tasks/:id
+- Maintain the same request and response format as the current API.
+- Return proper HTTP status codes:
+  - 200 for successful GET/PUT/DELETE
+  - 201 for successful POST
+  - 400 for validation errors (e.g., missing or empty title)
+  - 404 when a task is not found
+  - 500 for unexpected database/server errors
+- Use parameterized SQL queries everywhere to prevent SQL injection. Do not use string concatenation for SQL.
+- Organize the code cleanly (database initialization, table creation, seeding, and routes).
+- Explain any code changes you make and preserve the existing project structure as much as possible.

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Haroon Ameer Khan — Identity Kit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@500;600;700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #F6F3EE;
+    --text: #1C1B1A;
+    --main: #F2A93C;
+    --accent: #235347;
+    --card: #FFFFFF;
+    --line: #E4DFD6;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    padding:56px 24px 80px;
+  }
+  .page{max-width:820px;margin:0 auto;}
+
+  /* Hero / signature mark */
+  .hero{
+    background:var(--text);
+    color:var(--bg);
+    border-radius:14px;
+    padding:44px 40px;
+    margin-bottom:40px;
+    position:relative;
+    overflow:hidden;
+  }
+  .badge{
+    width:120px;height:120px;
+    border-radius:50%;
+    background:var(--text);
+    display:flex;align-items:center;justify-content:center;
+    margin-bottom:20px;
+  }
+  .badge span{
+    font-family:'Jost',sans-serif;
+    font-weight:700;
+    font-size:40px;
+    letter-spacing:2px;
+    color:var(--main);
+  }
+  .hero-title{
+    font-family:'Jost',sans-serif;
+    font-weight:700;
+    font-size:40px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    color:var(--bg);
+  }
+  .hero-sub{
+    font-family:'Poppins',sans-serif;
+    font-size:14px;
+    color:#B8B3A8;
+    margin-top:8px;
+    letter-spacing:0.3px;
+  }
+
+  h2{
+    font-family:'Jost',sans-serif;
+    font-weight:600;
+    font-size:14px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    color:var(--accent);
+    margin-bottom:16px;
+  }
+  section{margin-bottom:40px;}
+
+  /* Fonts */
+  .font-card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:24px 28px;
+    margin-bottom:12px;
+  }
+  .font-label{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    color:#6B7674;
+    margin-bottom:8px;
+  }
+  .font-sample-head{
+    font-family:'JetBrains Mono',monospace;
+    font-weight:800;
+    font-size:30px;
+  }
+  .font-sample-body{
+    font-family:'Inter',sans-serif;
+    font-size:18px;
+    color:#3A4442;
+  }
+
+  /* Palette */
+  .swatches{display:flex;gap:14px;flex-wrap:wrap;}
+  .swatch{
+    flex:1;min-width:150px;
+    border-radius:10px;
+    overflow:hidden;
+    border:1px solid var(--line);
+  }
+  .swatch-color{height:88px;}
+  .swatch-info{
+    background:var(--card);
+    padding:12px 14px;
+    font-family:'JetBrains Mono',monospace;
+  }
+  .swatch-name{font-size:13px;font-weight:700;}
+  .swatch-hex{font-size:12px;color:#6B7674;margin-top:2px;}
+
+  /* Style note */
+  .note{
+    background:var(--card);
+    border-left:4px solid var(--main);
+    border-radius:6px;
+    padding:22px 26px;
+    font-size:16px;
+    line-height:1.65;
+  }
+  .note b{color:var(--accent);}
+
+  footer{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    color:#8A9492;
+    text-align:center;
+    margin-top:8px;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="hero">
+    <div class="badge"><span>HK</span></div>
+    <div class="hero-title">Haroon Ameer Khan</div>
+    <div class="hero-sub">full stack MERN developer &amp; educator</div>
+  </div>
+
+  <section>
+    <h2>01 — Type</h2>
+    <div class="font-card">
+      <div class="font-label">Heading — Jost, weight 600–700, tracked wide</div>
+      <div class="font-sample-head" style="font-family:'Jost',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:1px;">Haroon Ameer Khan</div>
+    </div>
+    <div class="font-card">
+      <div class="font-label">Body — Poppins, weight 400–500</div>
+      <div class="font-sample-body" style="font-family:'Poppins',sans-serif;">Full stack MERN developer explaining backend concepts one commit at a time.</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>02 — Palette</h2>
+    <div class="swatches">
+      <div class="swatch">
+        <div class="swatch-color" style="background:#1C1B1A;"></div>
+        <div class="swatch-info"><div class="swatch-name">Charcoal</div><div class="swatch-hex">#1C1B1A</div></div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background:#F6F3EE;border-bottom:1px solid #E4DFD6;"></div>
+        <div class="swatch-info"><div class="swatch-name">Warm Fog</div><div class="swatch-hex">#F6F3EE</div></div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background:#F2A93C;"></div>
+        <div class="swatch-info"><div class="swatch-name">Marigold</div><div class="swatch-hex">#F2A93C</div></div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background:#235347;"></div>
+        <div class="swatch-info"><div class="swatch-name">Pine</div><div class="swatch-hex">#235347</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>03 — Logo / Favicon</h2>
+    <div class="font-card" style="display:flex;align-items:center;gap:24px;">
+      <div style="width:64px;height:64px;border-radius:50%;background:#1C1B1A;display:flex;align-items:center;justify-content:center;font-family:'Jost',sans-serif;font-weight:700;color:#F2A93C;font-size:20px;letter-spacing:1px;">HK</div>
+      <div class="font-sample-body" style="font-size:15px;font-family:'Poppins',sans-serif;">Circular monogram — <b style="color:#235347;">HK</b> in Jost — on a Charcoal disc. Doubles as a LinkedIn avatar and favicon, holds up down to 16px.</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>04 — Style Note</h2>
+    <div class="note" style="font-family:'Poppins',sans-serif;">
+      Headings in <b>Jost 700</b>, uppercase and tracked wide; body in <b>Poppins</b> — Marigold (#F2A93C) warms up Charcoal (#1C1B1A) type on a soft Warm Fog (#F6F3EE) base, with Pine (#235347) as the one grounding accent.<br>
+      Mood: a teacher's whiteboard at the start of a good session — confident, warm, clear.
+    </div>
+  </section>
+
+  <footer>identity kit v1 — haroon-ameer-khan-portfolio.vercel.app</footer>
+</div>
+</body>
+</html>

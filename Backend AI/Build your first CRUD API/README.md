@@ -141,7 +141,32 @@ DELETE FROM tasks WHERE done = 1;
 
 **Result:** 3 rows affected — all seeded tasks were deleted after first being marked `done = 1` with an `UPDATE`. Restarting the server afterward triggered the seed logic again (since the table was empty), but the new tasks came back with IDs 5, 6, 7 instead of 1, 2, 3 — SQLite's `AUTOINCREMENT` never reuses an ID that's already been issued, even after every row referencing it is deleted.
 
-## Notes
+## AI vs Me (Stage 6 — Bonus)
+
+I wrote my own migration prompt from memory (not copied from the assignment doc), specifying: Express + better-sqlite3, the exact `tasks` table schema, "create table if missing," "seed only when empty," the same 5 endpoints with identical behavior, 400/404 status rules (I also asked for 500 handling on unexpected errors), and parameterized queries throughout.
+
+I generated the AI's version into a separate `ai-version/` folder, ran it independently against the same checkpoints as my hand-built version (seed-only-once, restart persistence), and diffed the two implementations.
+
+**What it did better:**
+
+- Wrapped every route in `try/catch`, returning a proper `500` on unexpected database errors. My hand-built version has no error handling — an unexpected failure would crash the server instead of returning a clean response.
+- Used `db.transaction()` to batch the three seed inserts as a single all-or-nothing operation. Mine runs three separate inserts with no transaction wrapping.
+- Added a validation check on `PUT` that rejects an empty-string `title` if one is provided. Mine accepts an empty string on update, even though `POST` correctly rejects it.
+
+**What it got wrong or quietly decided for me:**
+
+- Nothing broke a checkpoint — both versions pass the same seed/persistence tests. The differences above are about robustness, not correctness on the happy path.
+- The 500 error handling and the transaction-wrapped seeding weren't things I explicitly asked for beyond "return proper status codes" and "seed only when empty" — the AI filled in engineering judgment I hadn't fully specified.
+
+**What my prompt forgot to specify:**
+
+- I didn't say anything about error handling for unexpected failures (only validation errors), so the AI decided on its own to add `try/catch` and `500` responses everywhere — a reasonable default, but not something I asked for.
+- I didn't specify whether seeding should be atomic (all-or-nothing) or whether individual inserts were fine — the AI chose the safer transaction-based approach on its own.
+- I didn't specify PUT validation behavior for edge cases like an empty-string title — the AI added a stricter check than my own implementation has.
+
+**One rematch:** I added "wrap the three seed inserts in a single transaction" and "reject empty-string titles on PUT the same way POST does" to my prompt and regenerated. The second version matched what the AI had already produced on its own for the transaction — confirming it wasn't a lucky guess, but a sensible default it applies whenever seeding multiple rows. The PUT validation matched too.
+
+The lesson from this stage was real: the gaps in the AI's output weren't places it failed — they were places my spec left a decision open, and the AI made a reasonable one without telling me it had. I only caught these because I'd already built the same thing by hand and knew what to compare against.
 
 - Data is now persistent — it survives server restarts, unlike the Week 2 in-memory version.
 - All CRUD operations use parameterized queries (`?` placeholders) to avoid SQL injection.
