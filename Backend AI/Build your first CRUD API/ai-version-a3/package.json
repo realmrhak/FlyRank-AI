@@ -1,0 +1,13 @@
+{
+  "name": "ai-version-a3-postgres-docker",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "pg": "^8.11.3"
+  }
+}
