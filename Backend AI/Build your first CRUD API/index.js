@@ -18,6 +18,7 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
+// Middleware — verifies the token and attaches the user to the request
 async function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization;
 
@@ -104,6 +105,28 @@ app.delete('/tasks/:id', async (req, res) => {
   res.status(204).send();
 });
 
+/**
+ * @swagger
+ * /auth/signup:
+ *   post:
+ *     summary: Create a new user account
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: User created
+ *       400:
+ *         description: Missing or invalid input
+ */
 // Creates a new user account via Supabase Auth
 app.post('/auth/signup', async (req, res) => {
   const { email, password } = req.body;
@@ -121,6 +144,30 @@ app.post('/auth/signup', async (req, res) => {
   res.status(201).json(data.user);
 });
 
+/**
+ * @swagger
+ * /auth/login:
+ *   post:
+ *     summary: Log in and receive an access token
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Login successful, returns access and refresh tokens
+ *       400:
+ *         description: Missing input
+ *       401:
+ *         description: Invalid credentials
+ */
 // Authenticates a user and returns their access/refresh tokens
 app.post('/auth/login', async (req, res) => {
   const { email, password } = req.body;
@@ -141,11 +188,33 @@ app.post('/auth/login', async (req, res) => {
   });
 });
 
+/**
+ * @swagger
+ * /public/info:
+ *   get:
+ *     summary: Public info, no auth required
+ *     responses:
+ *       200:
+ *         description: Public message
+ */
 // Public route — no authentication needed
 app.get('/public/info', (req, res) => {
   res.status(200).json({ message: 'Welcome stranger! This info is public.' });
 });
 
+/**
+ * @swagger
+ * /protected/profile:
+ *   get:
+ *     summary: Get the logged-in user's profile
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User profile data
+ *       401:
+ *         description: Missing, invalid, or expired token
+ */
 // Protected route — verifies the token with Supabase
 app.get('/protected/profile', requireAuth, (req, res) => {
   res.status(200).json({
@@ -155,10 +224,36 @@ app.get('/protected/profile', requireAuth, (req, res) => {
   });
 });
 
+/**
+ * @swagger
+ * /protected/dashboard:
+ *   get:
+ *     summary: Get the dashboard welcome message
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Dashboard message
+ *       401:
+ *         description: Missing, invalid, or expired token
+ */
 app.get('/protected/dashboard', requireAuth, (req, res) => {
   res.status(200).json({ message: `Welcome to your dashboard, ${req.user.email}!` });
 });
 
+/**
+ * @swagger
+ * /auth/logout:
+ *   post:
+ *     summary: Log out the current user
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       204:
+ *         description: Logout successful
+ *       401:
+ *         description: Missing, invalid, or expired token
+ */
 app.post('/auth/logout', requireAuth, async (req, res) => {
   const token = req.headers.authorization.split(' ')[1];
   await supabase.auth.signOut(token);
