@@ -1,6 +1,7 @@
 import express from 'express';
 import swaggerUi from 'swagger-ui-express';
 import swaggerSpec from './swagger.js';
+import supabase from './supabase.js';
 import db from './db.js';
 
 const app = express();
@@ -86,5 +87,5 @@ app.delete('/tasks/:id', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Server listening on http://localhost:${PORT}`);
+  console.log(`Server running and connected to Supabase on http://localhost:${PORT}`);
 });
