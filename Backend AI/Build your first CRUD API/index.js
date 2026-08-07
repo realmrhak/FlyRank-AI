@@ -123,6 +123,23 @@ app.post('/auth/login', async (req, res) => {
   });
 });
 
+// Public route — no authentication needed
+app.get('/public/info', (req, res) => {
+  res.status(200).json({ message: 'Welcome stranger! This info is public.' });
+});
+
+// Protected route — checks a token is present (not yet verified)
+app.get('/protected/profile', (req, res) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith('Bearer ') || !authHeader.split(' ')[1]) {
+    return res.status(401).json({ error: 'Access token required' });
+  }
+
+  // Token presence confirmed — actual verification happens in Stage 3
+  res.status(200).json({ message: 'Token received (not yet verified)' });
+});
+
 app.listen(PORT, () => {
   console.log(`Server running and connected to Supabase on http://localhost:${PORT}`);
 });
