@@ -19,12 +19,16 @@ function Contact() {
           <span className="contact-label">LinkedIn</span>
           <span className="contact-value">linkedin.com/in/realmrhak</span>
         </a>
+        <a className="contact-item" href="https://calendly.com/realmrhak07" target="_blank" rel="noreferrer">
+          <span className="contact-label">Book a Call</span>
+          <span className="contact-value">calendly.com/realmrhak07</span>
+        </a>
       </div>
 
       <div className="cta-band">
-        <p>One click, no form to fill.</p>
-        <a className="btn btn-primary" href="mailto:realmrhak07@gmail.com?subject=Hire%20Me%20—%20Full%20Stack%20MERN%20Developer">
-          Hire Me
+        <p>Prefer to pick a time directly?</p>
+        <a className="btn btn-primary" href="https://calendly.com/realmrhak07" target="_blank" rel="noreferrer">
+          Book a Call
         </a>
       </div>
     </div>

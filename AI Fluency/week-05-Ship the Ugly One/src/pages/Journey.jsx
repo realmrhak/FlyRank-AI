@@ -39,6 +39,10 @@ function Journey() {
           </div>
         ))}
       </div>
+
+      <div className="cta-band">
+        <p>This space grows — capstone work and future write-ups land here next.</p>
+      </div>
     </div>
   )
 }
