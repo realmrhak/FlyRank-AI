@@ -1,4 +1,35 @@
+import { useState } from 'react'
+
+const FORM_ENDPOINT = 'https://formspree.io/f/mjybpkln'
+
 function Contact() {
+  const [status, setStatus] = useState('idle') // idle | sending | sent | error
+  const [form, setForm] = useState({ name: '', email: '', message: '' })
+
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value })
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setStatus('sending')
+    try {
+      const res = await fetch(FORM_ENDPOINT, {
+        method: 'POST',
+        headers: { Accept: 'application/json' },
+        body: new FormData(e.target),
+      })
+      if (res.ok) {
+        setStatus('sent')
+        setForm({ name: '', email: '', message: '' })
+      } else {
+        setStatus('error')
+      }
+    } catch {
+      setStatus('error')
+    }
+  }
+
   return (
     <div className="page contact">
       <h1>Contact</h1>
@@ -25,11 +56,61 @@ function Contact() {
         </a>
       </div>
 
-      <div className="cta-band">
-        <p>Prefer to pick a time directly?</p>
-        <a className="btn btn-primary" href="https://calendly.com/realmrhak07" target="_blank" rel="noreferrer">
-          Book a Call
-        </a>
+      <div className="form-card">
+        <h2>Send a message</h2>
+
+        {status === 'sent' ? (
+          <p className="form-success">
+            Thanks — your message just landed in my inbox. I'll get back to you soon.
+          </p>
+        ) : (
+          <form onSubmit={handleSubmit}>
+            <div className="form-row">
+              <label htmlFor="name">Name</label>
+              <input
+                id="name"
+                name="name"
+                type="text"
+                required
+                value={form.name}
+                onChange={handleChange}
+                placeholder="Your name"
+              />
+            </div>
+            <div className="form-row">
+              <label htmlFor="email">Email</label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                required
+                value={form.email}
+                onChange={handleChange}
+                placeholder="you@company.com"
+              />
+            </div>
+            <div className="form-row">
+              <label htmlFor="message">Message</label>
+              <textarea
+                id="message"
+                name="message"
+                required
+                rows={5}
+                value={form.message}
+                onChange={handleChange}
+                placeholder="What are you looking to build?"
+              />
+            </div>
+
+            <button className="btn btn-primary" type="submit" disabled={status === 'sending'}>
+              {status === 'sending' ? 'Sending…' : 'Send Message'}
+            </button>
+
+            {status === 'error' && (
+              <p className="form-error">Something went wrong — try again, or email me directly.</p>
+            )}
+          </form>
+        )}
       </div>
     </div>
   )

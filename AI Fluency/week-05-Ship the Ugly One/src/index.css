@@ -358,6 +358,79 @@ h1, h2, h3, h4 {
 
 .contact-value { font-size: 14px; word-break: break-word; }
 
+/* Contact form */
+.form-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 28px;
+  max-width: 520px;
+}
+
+.form-card h2 {
+  font-size: 18px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 18px;
+}
+
+.form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.form-row label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pine);
+}
+
+.form-row input,
+.form-row textarea {
+  font-family: 'Poppins', sans-serif;
+  font-size: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--fog);
+  color: var(--ink);
+  resize: vertical;
+}
+
+.form-row input:focus,
+.form-row textarea:focus {
+  outline: none;
+  border-color: var(--marigold);
+}
+
+.form-card button {
+  border: none;
+  cursor: pointer;
+  font-family: 'Jost', sans-serif;
+}
+
+.form-card button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.form-success {
+  background: #EAF1EE;
+  color: var(--pine);
+  border-radius: 8px;
+  padding: 16px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.form-error {
+  color: #B3453A;
+  font-size: 13px;
+  margin-top: 10px;
+}
+
 /* Footer */
 .site-footer {
   border-top: 1px solid var(--line);
