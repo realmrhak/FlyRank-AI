@@ -35,7 +35,10 @@ function Portfolio() {
               </div>
             </div>
 
-            <p className="project-status">{p.status}</p>
+            <p className="project-result">{p.result}</p>
+            <a className="project-repo-link" href={p.repo} target="_blank" rel="noreferrer">
+              View code on GitHub →
+            </a>
           </article>
         ))}
       </div>

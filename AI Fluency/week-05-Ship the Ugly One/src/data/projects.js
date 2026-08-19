@@ -7,7 +7,8 @@ export const projects = [
     problem: 'Schools running attendance, fees, and grading across scattered spreadsheets and paper — no single system for admins, teachers, students, or parents.',
     build: 'A full ERP with six distinct user roles (Admin, Teacher, Student, Parent, Accountant, Principal), each with a role-scoped dashboard. Built a quiz engine with auto-grading, a fee management module with payment tracking, and multi-step approval workflows for leave requests and grade changes.',
     hard: 'Getting role-based access control right — six roles meant six different permission sets touching the same underlying data, without leaking one role\'s data into another\'s view.',
-    status: 'Core modules built and running locally; live demo link still being finalized (see \'still ugly\' list).',
+    result: 'Core modules (auth, RBAC, quiz engine, fee tracking) built and running end-to-end locally. Live hosted demo not yet up — see the code and README on GitHub for the full architecture.',
+    repo: 'https://github.com/realmrhak/EduCore---ERP',
   },
   {
     slug: 'nexnote',
@@ -17,7 +18,8 @@ export const projects = [
     problem: 'Teams needed a lightweight space to write notes, manage shared todos, and see what teammates were doing — without paying for a heavyweight tool like Notion.',
     build: 'Real-time collaborative note editor using Socket.io, with folders, shared todo lists, and an activity log so teammates can see recent changes. Auth uses JWT with refresh-token rotation for persistent, secure sessions.',
     hard: 'Refresh-token rotation — keeping users logged in securely across sessions without silently breaking auth when a token rotated mid-request.',
-    status: 'Deployed on Vercel (frontend) and Render (backend).',
+    result: 'Deployed and running end-to-end on Vercel (frontend) and Render (backend) — real-time sync tested across multiple sessions.',
+    repo: 'https://github.com/realmrhak/NexNote',
   },
   {
     slug: 'nexora-ai',
@@ -27,7 +29,8 @@ export const projects = [
     problem: 'Students needed a way to turn dense study material into something they could actually quiz themselves on, without manually writing flashcards.',
     build: 'A learning assistant integrated with the OpenRouter API to summarize documents, generate quiz questions from uploaded material, and answer follow-up questions in context.',
     hard: 'Handling inconsistent AI output — designing prompts and parsing logic robust enough that a slightly-off model response didn\'t break the quiz UI.',
-    status: 'Working prototype; polishing the document-upload flow.',
+    result: 'Working end-to-end prototype: document upload, AI summarization, and quiz generation all functional. Polishing the upload flow before a hosted demo goes up.',
+    repo: 'https://github.com/realmrhak/Nexora-AI-Application',
   },
   {
     slug: 'estudy',
@@ -37,7 +40,8 @@ export const projects = [
     problem: 'Self-study is easy to abandon without structure — needed a simple way to track study sessions and resources in one place.',
     build: 'A study tracker with resource organization and progress logging, built as a solo full-stack MERN project.',
     hard: 'Keeping the data model simple enough to ship solo without over-engineering a "study system" that never got used.',
-    status: 'Core build complete; case study write-up in progress.',
+    result: 'Core build complete and running locally. Case study write-up and hosted demo in progress.',
+    repo: 'https://github.com/realmrhak/Estudy',
   },
   {
     slug: 'nexra',
@@ -47,6 +51,7 @@ export const projects = [
     problem: 'Wanted hands-on experience with the parts of e-commerce that are easy to underestimate: cart state, checkout flow, and order management.',
     build: 'A full e-commerce flow — product catalog, cart, checkout, and an admin order-management view.',
     hard: 'Cart state management — keeping cart contents consistent across page reloads and sessions without a heavyweight state library.',
-    status: 'Core build complete; deployment link pending.',
+    result: 'Core build complete, running locally. Hosted demo link pending.',
+    repo: 'https://github.com/realmrhak/Nexra---E-commerce-Web-Application',
   },
 ]
