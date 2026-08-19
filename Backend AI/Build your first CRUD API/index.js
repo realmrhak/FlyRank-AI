@@ -3,6 +3,7 @@ import swaggerUi from 'swagger-ui-express';
 import swaggerSpec from './swagger.js';
 import supabase from './supabase.js';
 import db from './db.js';
+import { enrichInputSchema, enrichOutputSchema } from './llm/schema/enrichSchema.js';
 
 const app = express();
 const PORT = 3000;
@@ -258,6 +259,39 @@ app.post('/auth/logout', requireAuth, async (req, res) => {
   const token = req.headers.authorization.split(' ')[1];
   await supabase.auth.signOut(token);
   res.status(204).send();
+});
+
+/**
+ * POST /tasks/enrich
+ * Takes a task title and returns a suggested category, priority, and note.
+ * LLM_STUB=1 skips the AI call and returns a fixed fake answer, for testing.
+ */
+app.post('/tasks/enrich', (req, res) => {
+  // Step 1: validate the input BEFORE spending any AI call
+  const parseResult = enrichInputSchema.safeParse(req.body);
+
+  if (!parseResult.success) {
+    const firstError = parseResult.error.issues[0];
+    return res.status(400).json({
+      error: `Invalid input: ${firstError.path.join('.')} — ${firstError.message}`,
+    });
+  }
+
+  // Step 2: stub mode — return a fake answer, no AI call at all
+  if (process.env.LLM_STUB === '1') {
+    const stubResponse = {
+      category: 'work',
+      priority: 'medium',
+      suggestion: 'This is a stub response for testing.',
+      confidence: 0.5,
+    };
+
+    const validated = enrichOutputSchema.safeParse(stubResponse);
+    return res.status(200).json(validated.data);
+  }
+
+  // Step 3: real AI call will go here in Stage 2/3
+  res.status(501).json({ error: 'AI call not implemented yet — coming in Stage 2' });
 });
 
 app.listen(PORT, () => {
