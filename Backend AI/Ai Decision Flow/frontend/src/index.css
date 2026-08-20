@@ -1,0 +1,35 @@
+:root {
+  --bg: #fafaff;
+  --surface: #ffffff;
+  --border: #e6e4f5;
+  --text: #1f1b3a;
+  --text-muted: #78749c;
+  --accent: #7c6fe8;
+  --accent-dark: #5f52d4;
+  --accent-soft: #eeecfd;
+
+  font-family: 'Jost', system-ui, sans-serif;
+  color: var(--text);
+  background-color: var(--bg);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+}
+
+h1,
+h2,
+h3 {
+  font-family: 'Poppins', system-ui, sans-serif;
+}
