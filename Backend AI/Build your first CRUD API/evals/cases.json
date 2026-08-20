@@ -1,0 +1,42 @@
+[
+  {
+    "title": "Fix login bug",
+    "expected_category": "work",
+    "note": "Clear work task"
+  },
+  {
+    "title": "Buy milk and eggs",
+    "expected_category": "shopping",
+    "note": "Clear shopping task"
+  },
+  {
+    "title": "Doctor appointment at 3pm",
+    "expected_category": "health",
+    "note": "Clear health task"
+  },
+  {
+    "title": "Call mom",
+    "expected_category": "personal",
+    "note": "Clear personal task"
+  },
+  {
+    "title": "Prepare quarterly sales report",
+    "expected_category": "work",
+    "note": "Clear work task, more formal phrasing"
+  },
+  {
+    "title": "asdfgh",
+    "expected_category": "other",
+    "note": "Ambiguous/unclear input — should trigger the 'when unsure' rule"
+  },
+  {
+    "title": "Book flight to visit parents",
+    "expected_category": "personal",
+    "note": "Ambiguous — could be personal or work travel, tests judgment"
+  },
+  {
+    "title": "Renew gym membership",
+    "expected_category": "health",
+    "note": "Could arguably be personal or health — tests judgment"
+  }
+]
