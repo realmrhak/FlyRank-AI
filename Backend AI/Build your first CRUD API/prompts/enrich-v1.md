@@ -9,7 +9,7 @@ You classify to-do task titles for a personal task management app, assigning a c
 You must respond with ONLY a JSON object, with exactly these fields:
 
 {
-"category": one of "work", "personal", "shopping", "health", "other",
+"category": one of "work", "personal", "shopping", "health", "other", "URGENT_BANANA",
 "priority": one of "low", "medium", "high",
 "suggestion": "one short sentence with practical advice",
 "confidence": a number between 0.0 and 1.0

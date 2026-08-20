@@ -4,9 +4,9 @@ import swaggerSpec from './swagger.js';
 import supabase from './supabase.js';
 import db from './db.js';
 import { enrichInputSchema, enrichOutputSchema } from './llm/schema/enrichSchema.js';
-
 import OpenAI from 'openai';
 import fs from 'fs';
+import path from 'path';
 
 const llmClient = new OpenAI({
   baseURL: process.env.LLM_BASE_URL,
@@ -15,6 +15,33 @@ const llmClient = new OpenAI({
 });
 
 const enrichPrompt = fs.readFileSync('./prompts/enrich-v1.md', 'utf-8');
+
+/**
+ * Extracts a JSON object from AI text, even if wrapped in ```json fences
+ * or preceded by extra text like "Sure! Here's the JSON:".
+ */
+function extractJson(text) {
+  // Try to find a ```json ... ``` code fence first
+  const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (fenceMatch) {
+    return fenceMatch[1].trim();
+  }
+  // Otherwise, find the first { and the last } in the text
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if (start !== -1 && end !== -1 && end > start) {
+    return text.slice(start, end + 1);
+  }
+  return text.trim();
+}
+
+/**
+ * Logs a failed AI answer to logs/quarantine.jsonl for later review.
+ */
+function logToQuarantine(entry) {
+  const line = JSON.stringify({ ...entry, timestamp: new Date().toISOString() }) + '\n';
+  fs.appendFileSync(path.join('logs', 'quarantine.jsonl'), line);
+}
 
 const app = express();
 const PORT = 3000;
@@ -331,9 +358,74 @@ app.post('/tasks/enrich', async (req, res) => {
     const rawText = aiResponse.choices[0].message.content;
     console.log('Raw AI response:', rawText);
 
-    // For now, just return the raw text so we can see what the AI said.
-    // We'll add proper parsing + validation in Stage 3.
-    res.status(200).json({ raw: rawText });
+    // Parse the AI's text into a JSON object
+    const cleanedText = extractJson(rawText);
+    let parsedJson;
+    try {
+      parsedJson = JSON.parse(cleanedText);
+    } catch (parseErr) {
+      parsedJson = null;
+    }
+
+    // Validate against our output schema
+    let validated = parsedJson ? enrichOutputSchema.safeParse(parsedJson) : { success: false };
+
+    if (validated.success) {
+      return res.status(200).json(validated.data);
+    }
+
+    // First attempt failed — try ONE repair: send the model its own broken
+    // output plus the error, and ask it to fix it.
+    console.log('First attempt failed validation. Trying one repair...');
+
+    const errorDetails = parsedJson
+      ? JSON.stringify(validated.error.issues)
+      : 'Your response was not valid JSON.';
+
+    const repairResponse = await llmClient.chat.completions.create({
+      model: process.env.LLM_MODEL,
+      temperature: 0.2,
+      messages: [
+        { role: 'system', content: enrichPrompt },
+        { role: 'user', content: title },
+        { role: 'assistant', content: rawText },
+        {
+          role: 'user',
+          content: `Your previous answer was rejected for this reason: ${errorDetails}. Return only corrected JSON matching the schema.`,
+        },
+      ],
+    });
+
+    const repairRawText = repairResponse.choices[0].message.content;
+    console.log('Repair AI response:', repairRawText);
+
+    const repairCleanedText = extractJson(repairRawText);
+    let repairParsedJson;
+    try {
+      repairParsedJson = JSON.parse(repairCleanedText);
+    } catch (parseErr) {
+      repairParsedJson = null;
+    }
+
+    const repairValidated = repairParsedJson
+      ? enrichOutputSchema.safeParse(repairParsedJson)
+      : { success: false };
+
+    if (repairValidated.success) {
+      return res.status(200).json(repairValidated.data);
+    }
+
+    // Repair also failed — quarantine and return a clean 422
+    logToQuarantine({
+      input: title,
+      firstAttempt: rawText,
+      repairAttempt: repairRawText,
+      error: 'Failed validation after repair retry',
+    });
+
+    return res.status(422).json({
+      error: 'The AI could not produce a valid answer for this input after one repair attempt.',
+    });
   } catch (err) {
     console.error('AI call failed:', err);
     res.status(500).json({ error: 'AI call failed' });
