@@ -21,12 +21,10 @@ const enrichPrompt = fs.readFileSync('./prompts/enrich-v1.md', 'utf-8');
  * or preceded by extra text like "Sure! Here's the JSON:".
  */
 function extractJson(text) {
-  // Try to find a ```json ... ``` code fence first
   const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
   if (fenceMatch) {
     return fenceMatch[1].trim();
   }
-  // Otherwise, find the first { and the last } in the text
   const start = text.indexOf('{');
   const end = text.lastIndexOf('}');
   if (start !== -1 && end !== -1 && end > start) {
@@ -41,6 +39,14 @@ function extractJson(text) {
 function logToQuarantine(entry) {
   const line = JSON.stringify({ ...entry, timestamp: new Date().toISOString() }) + '\n';
   fs.appendFileSync(path.join('logs', 'quarantine.jsonl'), line);
+}
+
+/**
+ * Logs the cost/usage details of one AI call to logs/costs.jsonl
+ */
+function logCost(entry) {
+  const line = JSON.stringify({ ...entry, timestamp: new Date().toISOString() }) + '\n';
+  fs.appendFileSync(path.join('logs', 'costs.jsonl'), line);
 }
 
 const app = express();
@@ -303,6 +309,7 @@ app.post('/auth/logout', requireAuth, async (req, res) => {
  * POST /tasks/enrich
  * Takes a task title and returns a suggested category, priority, and note.
  * LLM_STUB=1 skips the AI call and returns a fixed fake answer, for testing.
+ * LLM_ENABLED=false disables the AI call entirely and returns a safe fallback.
  */
 app.post('/tasks/enrich', async (req, res) => {
   // Step 1: validate the input BEFORE spending any AI call
@@ -329,10 +336,21 @@ app.post('/tasks/enrich', async (req, res) => {
     return res.status(200).json(validated.data);
   }
 
-  // Step 3: real AI call, with a simple retry for "model is busy" (429) errors
+  // Step 2.5: kill switch — skip the AI entirely and return a safe fallback
+  if (process.env.LLM_ENABLED === 'false') {
+    return res.status(200).json({
+      category: 'other',
+      priority: 'low',
+      suggestion: 'AI enrichment is currently disabled — this is a fallback response.',
+      confidence: 0,
+    });
+  }
+
+  // Step 3: real AI call, with retries on retryable errors only
   try {
     let aiResponse;
     let lastError;
+    const startTime = Date.now();
 
     for (let attempt = 1; attempt <= 3; attempt++) {
       try {
@@ -347,14 +365,29 @@ app.post('/tasks/enrich', async (req, res) => {
         break; // success, stop retrying
       } catch (err) {
         lastError = err;
-        if (err.status === 429 && attempt < 3) {
-          console.log(`Attempt ${attempt} got rate-limited, waiting 5s before retry...`);
-          await new Promise((resolve) => setTimeout(resolve, 5000));
+        // Only retry on timeouts, 429 (rate limit), and 5xx (server errors).
+        // Never retry on 400/401/403 — a bad key or bad request stays bad.
+        const isRetryable =
+          err.status === 429 || (err.status >= 500 && err.status < 600) || err.status === undefined;
+
+        if (isRetryable && attempt < 3) {
+          // Exponential backoff with jitter: 1s, 2s, 4s (plus a little randomness)
+          const baseDelay = 1000 * Math.pow(2, attempt - 1);
+          const jitter = Math.random() * 500;
+          const delay = baseDelay + jitter;
+
+          // If the provider tells us exactly how long to wait, respect that instead
+          const retryAfterHeader = err.headers?.get?.('retry-after');
+          const finalDelay = retryAfterHeader ? Number(retryAfterHeader) * 1000 : delay;
+
+          console.log(`Attempt ${attempt} failed (${err.status}), retrying in ${Math.round(finalDelay)}ms...`);
+          await new Promise((resolve) => setTimeout(resolve, finalDelay));
         } else {
-          throw err; // not a 429, or out of retries — give up
+          throw err; // not retryable, or out of attempts — give up
         }
       }
     }
+
     const rawText = aiResponse.choices[0].message.content;
     console.log('Raw AI response:', rawText);
 
@@ -369,65 +402,99 @@ app.post('/tasks/enrich', async (req, res) => {
 
     // Validate against our output schema
     let validated = parsedJson ? enrichOutputSchema.safeParse(parsedJson) : { success: false };
+    let neededRepair = false;
 
-    if (validated.success) {
-      return res.status(200).json(validated.data);
+    if (!validated.success) {
+      neededRepair = true;
+      console.log('First attempt failed validation. Trying one repair...');
+
+      const errorDetails = parsedJson
+        ? JSON.stringify(validated.error.issues)
+        : 'Your response was not valid JSON.';
+
+      const repairResponse = await llmClient.chat.completions.create({
+        model: process.env.LLM_MODEL,
+        temperature: 0.2,
+        messages: [
+          { role: 'system', content: enrichPrompt },
+          { role: 'user', content: title },
+          { role: 'assistant', content: rawText },
+          {
+            role: 'user',
+            content: `Your previous answer was rejected for this reason: ${errorDetails}. Return only corrected JSON matching the schema.`,
+          },
+        ],
+      });
+
+      const repairRawText = repairResponse.choices[0].message.content;
+      console.log('Repair AI response:', repairRawText);
+
+      const repairCleanedText = extractJson(repairRawText);
+      let repairParsedJson;
+      try {
+        repairParsedJson = JSON.parse(repairCleanedText);
+      } catch (parseErr) {
+        repairParsedJson = null;
+      }
+
+      const repairValidated = repairParsedJson
+        ? enrichOutputSchema.safeParse(repairParsedJson)
+        : { success: false };
+
+      const durationMs = Date.now() - startTime;
+
+      if (repairValidated.success) {
+        logCost({
+          promptVersion: 'enrich-v1',
+          model: process.env.LLM_MODEL,
+          inputTokens: aiResponse.usage?.prompt_tokens ?? null,
+          outputTokens: aiResponse.usage?.completion_tokens ?? null,
+          durationMs,
+          neededRepair: true,
+        });
+        return res.status(200).json(repairValidated.data);
+      }
+
+      // Repair also failed — quarantine and return a clean 422
+      logToQuarantine({
+        input: title,
+        firstAttempt: rawText,
+        repairAttempt: repairRawText,
+        error: 'Failed validation after repair retry',
+      });
+      logCost({
+        promptVersion: 'enrich-v1',
+        model: process.env.LLM_MODEL,
+        inputTokens: aiResponse.usage?.prompt_tokens ?? null,
+        outputTokens: aiResponse.usage?.completion_tokens ?? null,
+        durationMs,
+        neededRepair: true,
+      });
+
+      return res.status(422).json({
+        error: 'The AI could not produce a valid answer for this input after one repair attempt.',
+      });
     }
 
-    // First attempt failed — try ONE repair: send the model its own broken
-    // output plus the error, and ask it to fix it.
-    console.log('First attempt failed validation. Trying one repair...');
-
-    const errorDetails = parsedJson
-      ? JSON.stringify(validated.error.issues)
-      : 'Your response was not valid JSON.';
-
-    const repairResponse = await llmClient.chat.completions.create({
+    // First attempt succeeded — log cost and return
+    const durationMs = Date.now() - startTime;
+    logCost({
+      promptVersion: 'enrich-v1',
       model: process.env.LLM_MODEL,
-      temperature: 0.2,
-      messages: [
-        { role: 'system', content: enrichPrompt },
-        { role: 'user', content: title },
-        { role: 'assistant', content: rawText },
-        {
-          role: 'user',
-          content: `Your previous answer was rejected for this reason: ${errorDetails}. Return only corrected JSON matching the schema.`,
-        },
-      ],
+      inputTokens: aiResponse.usage?.prompt_tokens ?? null,
+      outputTokens: aiResponse.usage?.completion_tokens ?? null,
+      durationMs,
+      neededRepair: false,
     });
 
-    const repairRawText = repairResponse.choices[0].message.content;
-    console.log('Repair AI response:', repairRawText);
-
-    const repairCleanedText = extractJson(repairRawText);
-    let repairParsedJson;
-    try {
-      repairParsedJson = JSON.parse(repairCleanedText);
-    } catch (parseErr) {
-      repairParsedJson = null;
-    }
-
-    const repairValidated = repairParsedJson
-      ? enrichOutputSchema.safeParse(repairParsedJson)
-      : { success: false };
-
-    if (repairValidated.success) {
-      return res.status(200).json(repairValidated.data);
-    }
-
-    // Repair also failed — quarantine and return a clean 422
-    logToQuarantine({
-      input: title,
-      firstAttempt: rawText,
-      repairAttempt: repairRawText,
-      error: 'Failed validation after repair retry',
-    });
-
-    return res.status(422).json({
-      error: 'The AI could not produce a valid answer for this input after one repair attempt.',
-    });
+    return res.status(200).json(validated.data);
   } catch (err) {
     console.error('AI call failed:', err);
+
+    if (err.name === 'APIConnectionTimeoutError' || err.status === undefined) {
+      return res.status(504).json({ error: 'The AI call timed out. Please try again.' });
+    }
+
     res.status(500).json({ error: 'AI call failed' });
   }
 });
