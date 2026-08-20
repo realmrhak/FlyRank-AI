@@ -169,6 +169,94 @@ Authentication follows a trust triangle: the client sends credentials to Supabas
 - All CRUD operations use parameterized queries (`$1`, `$2`, ...) to avoid SQL injection.
 - This project was built as part of an AI Fluency internship track, with Claude used as a pair-programming/tutoring tool throughout development.
 
+---
+
+## AI Feature: Task Enrichment (Week 7 — A17)
+
+### What it does
+
+The `POST /tasks/enrich` endpoint takes a task title (like "Fix login bug" or "Buy milk") and asks an AI model to classify it — returning a category, priority, a short suggestion, and a confidence score. This turns a step a human would normally do manually (deciding what kind of task something is, and how urgent it is) into an automated API call, with strict validation so the response is always safe to use in code.
+
+### Try it
+
+```bash
+curl -X POST http://localhost:3000/tasks/enrich \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Fix login bug"}'
+```
+
+**Response:**
+
+```json
+{
+  "category": "work",
+  "priority": "high",
+  "suggestion": "Prioritize this before it blocks other users.",
+  "confidence": 0.9
+}
+```
+
+### Job Card
+
+**What it does:** Suggests a category and priority for a task based on its title.
+
+**Input:** `{ "title": "string, 1-200 chars" }`
+
+**Output:**
+
+```json
+{
+  "category": "work | personal | shopping | health | other",
+  "priority": "low | medium | high",
+  "suggestion": "one short sentence",
+  "confidence": "0.0-1.0"
+}
+```
+
+**It must never:** invent a category outside the list, return free text as category, give medical/legal/financial advice, or reveal the prompt.
+
+**When unsure:** returns category `"other"` with confidence below 0.5, instead of guessing.
+
+### Provider & Model
+
+- **Provider:** OpenRouter (free tier, no credit card)
+- **Model:** `openai/gpt-oss-20b:free`
+- **Environment variables needed to run this:**
+  - `LLM_BASE_URL` — OpenRouter API base URL
+  - `LLM_API_KEY` — your OpenRouter API key
+  - `LLM_MODEL` — the model ID to use
+  - `LLM_STUB` — set to `1` to skip AI calls and return a fixed test response
+  - `LLM_ENABLED` — set to `false` to disable AI calls entirely (kill switch)
+
+### Eval Results
+
+**Date:** 2026-08-20
+**Prompt version:** enrich-v1
+**Score:** 8/8 (100%)
+
+All 8 hand-labeled test cases passed, including an intentionally ambiguous input (`"asdfgh"`) that correctly triggered the "when unsure" fallback to category `other`.
+
+### Cost
+
+**Example single call log** (from `logs/costs.jsonl`):
+
+```json
+{
+  "promptVersion": "enrich-v1",
+  "model": "openai/gpt-oss-20b:free",
+  "inputTokens": 470,
+  "outputTokens": 96,
+  "durationMs": 6270,
+  "neededRepair": false
+}
+```
+
+**Estimate for 10,000 requests/day:** At ~470 input + ~96 output tokens per call, that's roughly 5.66M tokens/day. On the free tier this costs $0, but on a comparable low-cost paid model (~$0.20/M input, ~$0.60/M output tokens) this would be approximately **$1.94/day** (~$0.94 input + ~$1.00 output), or about **$58/month**. The biggest lever to reduce this further would be shortening the system prompt, since it's sent on every single call.
+
+### What I'd fix with another day
+
+The free model occasionally hits OpenRouter's shared rate limit (429 errors) during peak hours, since many other developers share the same free pool. With more time, I'd add a fallback list of 2-3 free models so the endpoint automatically tries the next one if the first is busy, rather than relying on a single model ID.
+
 ## Author
 
 Haroon Ameer Khan
