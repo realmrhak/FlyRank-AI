@@ -5,6 +5,17 @@ import supabase from './supabase.js';
 import db from './db.js';
 import { enrichInputSchema, enrichOutputSchema } from './llm/schema/enrichSchema.js';
 
+import OpenAI from 'openai';
+import fs from 'fs';
+
+const llmClient = new OpenAI({
+  baseURL: process.env.LLM_BASE_URL,
+  apiKey: process.env.LLM_API_KEY,
+  timeout: 30000, // 30 seconds — don't wait forever like the SDK's 10-minute default
+});
+
+const enrichPrompt = fs.readFileSync('./prompts/enrich-v1.md', 'utf-8');
+
 const app = express();
 const PORT = 3000;
 
@@ -266,7 +277,7 @@ app.post('/auth/logout', requireAuth, async (req, res) => {
  * Takes a task title and returns a suggested category, priority, and note.
  * LLM_STUB=1 skips the AI call and returns a fixed fake answer, for testing.
  */
-app.post('/tasks/enrich', (req, res) => {
+app.post('/tasks/enrich', async (req, res) => {
   // Step 1: validate the input BEFORE spending any AI call
   const parseResult = enrichInputSchema.safeParse(req.body);
 
@@ -277,6 +288,8 @@ app.post('/tasks/enrich', (req, res) => {
     });
   }
 
+  const { title } = parseResult.data;
+
   // Step 2: stub mode — return a fake answer, no AI call at all
   if (process.env.LLM_STUB === '1') {
     const stubResponse = {
@@ -285,13 +298,46 @@ app.post('/tasks/enrich', (req, res) => {
       suggestion: 'This is a stub response for testing.',
       confidence: 0.5,
     };
-
     const validated = enrichOutputSchema.safeParse(stubResponse);
     return res.status(200).json(validated.data);
   }
 
-  // Step 3: real AI call will go here in Stage 2/3
-  res.status(501).json({ error: 'AI call not implemented yet — coming in Stage 2' });
+  // Step 3: real AI call, with a simple retry for "model is busy" (429) errors
+  try {
+    let aiResponse;
+    let lastError;
+
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        aiResponse = await llmClient.chat.completions.create({
+          model: process.env.LLM_MODEL,
+          temperature: 0.2,
+          messages: [
+            { role: 'system', content: enrichPrompt },
+            { role: 'user', content: title },
+          ],
+        });
+        break; // success, stop retrying
+      } catch (err) {
+        lastError = err;
+        if (err.status === 429 && attempt < 3) {
+          console.log(`Attempt ${attempt} got rate-limited, waiting 5s before retry...`);
+          await new Promise((resolve) => setTimeout(resolve, 5000));
+        } else {
+          throw err; // not a 429, or out of retries — give up
+        }
+      }
+    }
+    const rawText = aiResponse.choices[0].message.content;
+    console.log('Raw AI response:', rawText);
+
+    // For now, just return the raw text so we can see what the AI said.
+    // We'll add proper parsing + validation in Stage 3.
+    res.status(200).json({ raw: rawText });
+  } catch (err) {
+    console.error('AI call failed:', err);
+    res.status(500).json({ error: 'AI call failed' });
+  }
 });
 
 app.listen(PORT, () => {
