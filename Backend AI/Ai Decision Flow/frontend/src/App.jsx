@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import ReactFlow, {
   Background,
   Controls,
@@ -6,19 +6,21 @@ import ReactFlow, {
   addEdge,
   applyNodeChanges,
   applyEdgeChanges,
+  MarkerType,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
+import QuestionNode from './components/QuestionNode.jsx';
 import './App.css';
 
 // A workflow always starts with one example node so the canvas isn't empty.
-// Each node's "data.prompt" is the yes/no question that will be sent to the AI
-// when the workflow runs (that part comes in Phase 3).
+// Each node's "data.label" is the yes/no question sent to the AI when the
+// workflow runs (that part is built in Phase 3).
 const initialNodes = [
   {
     id: '1',
-    position: { x: 300, y: 140 },
+    type: 'question',
+    position: { x: 320, y: 120 },
     data: { label: 'Is this a support request?' },
-    type: 'default',
   },
 ];
 
@@ -26,9 +28,19 @@ const initialEdges = [];
 
 let nextNodeId = 2;
 
+// Styling for the two edge kinds. Which one gets used is decided by which
+// handle ("yes" or "no") the user dragged the connection from — see
+// onConnect below.
+const edgeStyleFor = (kind) =>
+  kind === 'yes'
+    ? { stroke: '#2f9e63', strokeWidth: 2.2 }
+    : { stroke: '#e0555f', strokeWidth: 2.2 };
+
 function App() {
   const [nodes, setNodes] = useState(initialNodes);
   const [edges, setEdges] = useState(initialEdges);
+
+  const nodeTypes = useMemo(() => ({ question: QuestionNode }), []);
 
   const onNodesChange = useCallback(
     (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
@@ -38,18 +50,40 @@ function App() {
     (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
     []
   );
-  const onConnect = useCallback(
-    (connection) => setEdges((eds) => addEdge({ ...connection, animated: true }, eds)),
-    []
-  );
+
+  const onConnect = useCallback((connection) => {
+    // connection.sourceHandle is "yes" or "no" depending on which handle
+    // the user dragged from (defined in QuestionNode.jsx).
+    const kind = connection.sourceHandle === 'yes' ? 'yes' : 'no';
+
+    const newEdge = {
+      ...connection,
+      id: `e-${connection.source}-${connection.target}-${kind}-${Date.now()}`,
+      label: kind.toUpperCase(),
+      labelBgPadding: [6, 3],
+      labelBgBorderRadius: 6,
+      labelStyle: {
+        fontFamily: 'Jost, sans-serif',
+        fontWeight: 600,
+        fontSize: 11,
+        fill: kind === 'yes' ? '#2f9e63' : '#e0555f',
+      },
+      labelBgStyle: { fill: '#ffffff', fillOpacity: 0.9 },
+      style: edgeStyleFor(kind),
+      markerEnd: { type: MarkerType.ArrowClosed, color: kind === 'yes' ? '#2f9e63' : '#e0555f' },
+      data: { kind },
+    };
+
+    setEdges((eds) => addEdge(newEdge, eds));
+  }, []);
 
   const addNode = () => {
     const id = String(nextNodeId++);
     const newNode = {
       id,
-      position: { x: 300 + (nodes.length % 3) * 40, y: 140 + nodes.length * 130 },
-      data: { label: 'New question node' },
-      type: 'default',
+      type: 'question',
+      position: { x: 300 + (nodes.length % 3) * 60, y: 120 + nodes.length * 160 },
+      data: { label: 'New question…' },
     };
     setNodes((nds) => [...nds, newNode]);
   };
@@ -65,7 +99,7 @@ function App() {
           </div>
         </div>
         <div className="topbar-actions">
-          <button className="btn btn-ghost" disabled>
+          <button className="btn btn-ghost" disabled title="Coming in Phase 3">
             Run Workflow
           </button>
           <button className="btn btn-primary" onClick={addNode}>
@@ -78,6 +112,7 @@ function App() {
         <ReactFlow
           nodes={nodes}
           edges={edges}
+          nodeTypes={nodeTypes}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
