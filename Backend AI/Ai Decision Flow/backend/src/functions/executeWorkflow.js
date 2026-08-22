@@ -75,7 +75,7 @@ export const executeWorkflow = inngest.createFunction(
       return result;
     } catch (err) {
       await step.run('save-error', async () => {
-        setRunError(runId, err.message || 'Workflow execution failed');
+        setRunError(runId, err.message || 'Workflow execution failed', currentId, path);
       });
       throw err;
     }

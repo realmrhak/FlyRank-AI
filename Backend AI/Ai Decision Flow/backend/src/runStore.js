@@ -14,8 +14,8 @@ export function setRunResult(runId, result) {
   runs.set(runId, { status: 'done', ...result });
 }
 
-export function setRunError(runId, error) {
-  runs.set(runId, { status: 'error', error });
+export function setRunError(runId, error, failedNodeId, partialPath) {
+  runs.set(runId, { status: 'error', error, failedNodeId, path: partialPath || [] });
 }
 
 export function getRun(runId) {

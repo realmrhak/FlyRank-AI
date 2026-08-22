@@ -3,11 +3,13 @@ import { Handle, Position, useReactFlow } from 'reactflow';
 /**
  * A custom node representing one decision step in the workflow.
  * - The textarea lets the user edit the yes/no question directly on the canvas.
- * - It has TWO source handles: a green "YES" handle (right) and a red "NO"
- *   handle (bottom). Dragging a connection from a specific handle is how the
- *   user defines which path is which — App.jsx reads `sourceHandle` in
- *   onConnect to style/label the resulting edge correctly.
- * - One target handle (top) accepts incoming connections from other nodes.
+ * - It has TWO source handles: a green "YES" handle and a red "NO" handle.
+ *   Dragging a connection from a specific handle decides which path it is —
+ *   App.jsx reads `sourceHandle` in onConnect to style/label the edge.
+ * - data.status drives the Phase 4 "better node styling" visual states:
+ *   'idle' (default), 'active' (currently being evaluated — pulses),
+ *   'done-yes' / 'done-no' (finished, tinted by the answer it got),
+ *   'error' (the AI call failed here).
  */
 function QuestionNode({ id, data }) {
   const { setNodes } = useReactFlow();
@@ -19,11 +21,20 @@ function QuestionNode({ id, data }) {
     );
   };
 
+  const status = data.status || 'idle';
+
   return (
-    <div className="question-node">
+    <div className={`question-node status-${status}`}>
       <Handle type="target" position={Position.Top} className="handle-target" />
 
-      <div className="question-node-header">Question</div>
+      <div className="question-node-header">
+        <span>Question</span>
+        {status === 'active' && <span className="status-pill status-pill-active">Thinking…</span>}
+        {status === 'done-yes' && <span className="status-pill status-pill-yes">YES</span>}
+        {status === 'done-no' && <span className="status-pill status-pill-no">NO</span>}
+        {status === 'error' && <span className="status-pill status-pill-error">Error</span>}
+      </div>
+
       <textarea
         className="question-node-textarea nodrag"
         value={data.label}
@@ -31,6 +42,10 @@ function QuestionNode({ id, data }) {
         placeholder="Type a yes/no question…"
         rows={3}
       />
+
+      {status === 'error' && data.errorMessage && (
+        <div className="question-node-error">{data.errorMessage}</div>
+      )}
 
       <div className="question-node-footer">
         <div className="handle-row handle-row-no">
